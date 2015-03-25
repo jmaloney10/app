@@ -1,0 +1,44 @@
+<resources>
+    <string name="app_name">My Application</string>
+
+    <string name="hello_world">Hello world!</string>
+
+    <string name="action_search">Search</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_add">Add</string>
+    <string name="action_save">Save</string>
+
+    <string name="edit_message">Enter a message</string>
+    <string name="button_send">Send</string>
+    <string name="title_activity_display_message">My Message</string>
+    <string name="add_workout">Add Workout</string>
+    <string name="show_dialog">Show Dialog</string>
+    <string name="undo">Undo</string>
+    <string name="title_activity_select_day">SelectDay</string>
+
+    <string name="save_button_text">Save</string>
+
+    <string name="pref_deload_settings_title">Deload Preferences</string>
+        <string name="pref_deload_enabled_title">Do Deloads</string>
+        <string name="pref_deload_enabled_summary">Add deloads automatically to workout plan</string>
+        <string name="pref_deload_freq_title">Deload Frequency</string>
+        <string name="pref_deload_freq_summary">Add a deload every N cycles</string>
+
+    <string name="pref_max_settings_title">Max Lifts</string>
+        <string name="pref_squat_max_title">Squat Max</string>
+        <string name="pref_squat_max_summary">Your squat 1 rep max</string>
+        <string name="pref_bench_max_title">Bench Max</string>
+        <string name="pref_bench_max_summary">Your bench 1 rep max</string>
+        <string name="pref_overheadpress_max_title">Overheadpress Max</string>
+        <string name="pref_overheadpress_max_summary">Your overheadpress 1 rep max</string>
+        <string name="pref_deadlift_max_title">Deadlift Max</string>
+        <string name="pref_deadlift_max_summary">Your deadlift 1 rep max</string>
+        <string name="pref_training_max_adjustment_title">Adjust Max to Training Max</string>
+        <string name="pref_training_max_adjustment_summary">Use 90% of listed maxes as a training max</string>
+
+
+    <string name="saved_bench_max">com.example.jmaloney.save_bench_max</string>
+    <string name="saved_squat_max">com.example.jmaloney.save_squat_max</string>
+    <string name="saved_deadlift_max">com.example.jmaloney.save_deadlift_max</string>
+    <string name="saved_overheadpress_max">com.example.jmaloney.save_overheadpress_max</string>
+</resources>
