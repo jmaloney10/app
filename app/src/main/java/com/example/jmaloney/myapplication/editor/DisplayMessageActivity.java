@@ -12,18 +12,35 @@ import android.widget.ExpandableListView;
 import android.widget.Toast;
 
 import com.example.jmaloney.myapplication.Day;
+import com.example.jmaloney.myapplication.MainActivity;
 import com.example.jmaloney.myapplication.common.Group;
 import com.example.jmaloney.myapplication.common.MyExpandableListAdapter;
 import com.example.jmaloney.myapplication.R;
+import com.example.jmaloney.myapplication.common.Record;
 import com.example.jmaloney.myapplication.common.SelectableGroup;
 import com.example.jmaloney.myapplication.template.Template531;
 import com.example.jmaloney.myapplication.settings.SettingsActivity;
 
+import net.sf.jsefa.Deserializer;
+import net.sf.jsefa.csv.CsvIOFactory;
+import net.sf.jsefa.csv.CsvSerializer;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.StringWriter;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class DisplayMessageActivity extends Activity{
@@ -32,6 +49,10 @@ public class DisplayMessageActivity extends Activity{
     String date = "";
     ExpandableListView listView = null;
     MyExpandableListAdapter adapter = null;
+    SimpleDateFormat formatter = null;
+    String day;
+    Integer wave;
+    ArrayList<Record> logs = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,12 +62,15 @@ public class DisplayMessageActivity extends Activity{
         Intent intent = getIntent();
         String[] messages = intent.getStringArrayExtra(SelectDay.EXTRA_MESSAGE);
         date = intent.getStringExtra(SelectDay.DATE_MESSAGE);
-        displayLifts(messages[0],Integer.parseInt(messages[1]));
+//        date = "03 Mar 2015";
+        day = messages[0];
+        wave = Integer.parseInt(messages[1]);
+        displayLifts();
 
 
     }
 
-    public void displayLifts(String day,Integer wave){
+    public void displayLifts(){
         Template531 template = new Template531();
         Map<String,Integer> maxes = new HashMap<String,Integer>();
 
@@ -95,6 +119,8 @@ public class DisplayMessageActivity extends Activity{
         String string = "";
         SelectableGroup tempGroup = null;
 
+        loadLogs();
+
         FileOutputStream fos = null;
         try {
             fos = openFileOutput(FILENAME, this.MODE_PRIVATE);
@@ -102,28 +128,107 @@ public class DisplayMessageActivity extends Activity{
             e.printStackTrace();
         }
 
+        CsvSerializer serializer = (CsvSerializer) CsvIOFactory.createFactory(Record.class).createSerializer();
+        StringWriter writer = new StringWriter();
+        serializer.open(writer);
+
+        if (formatter == null){
+            formatter = new SimpleDateFormat(MainActivity.DATE_FORMAT);
+        }
+
         try {
-            for(int i = 0; i < groups.size() ; i++){
-                tempGroup = (SelectableGroup) groups.get(i);
-                for (int j = 0; j <tempGroup.selected.size(); j++) {
-                    if (tempGroup.selected.get(j)) {
-                        string = String.format("%s\t%s\t%s\t1", date, tempGroup.groupName, tempGroup.children.get(j));
-                    } else {
-                        string = String.format("%s\t%s\t%s\t0", date, tempGroup.groupName, tempGroup.children.get(j));
-                    }
-                    Toast.makeText(getApplicationContext(), string,
-                            Toast.LENGTH_SHORT).show();
-                    fos.write(string.getBytes());
+            Iterator<Record> it = logs.iterator();
+            while(it.hasNext()){
+                Record record = it.next();
+                if (record.date.equals(formatter.parse(date))){
+                    it.remove();
                 }
             }
 
+            for(int i = 0; i < groups.size() ; i++){
+                tempGroup = (SelectableGroup) groups.get(i);
+                for (int j = 0; j <tempGroup.selected.size(); j++) {
+                    logs.add(createRecord(tempGroup.groupName, tempGroup.children.get(j), tempGroup.selected.get(j)));
+                }
+            }
+
+            for (Record record: logs){
+                serializer.write(record);
+            }
+
+            serializer.close(true);
+            string = writer.toString();
+            fos.write(string.getBytes());
             fos.close();
         } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
             e.printStackTrace();
         }
 
         Toast.makeText(getApplicationContext(), "Saved!",
                 Toast.LENGTH_SHORT).show();
+    }
+
+    public void loadLogs(){
+        FileInputStream fis = null;
+        BufferedReader bfr = null;
+        logs = new ArrayList<Record>();
+        String line = null;
+        Toast.makeText(getApplicationContext(), "load logs called",
+                Toast.LENGTH_SHORT).show();
+
+        try {
+            fis = openFileInput("workout_log");
+            bfr = new BufferedReader(new InputStreamReader(fis));
+
+
+            Deserializer deserializer = CsvIOFactory.createFactory(Record.class).createDeserializer();
+            deserializer.open(bfr);
+            while (deserializer.hasNext()) {
+                Record p = deserializer.next();
+                logs.add(p);
+            }
+            deserializer.close(true);
+
+
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+        }
+
+
+
+    }
+
+    public Record createRecord(String groupName,String setInfo, boolean completed) throws ParseException {
+        if (formatter == null){
+            formatter = new SimpleDateFormat(MainActivity.DATE_FORMAT);
+        }
+        String subString = null;
+        Record record = new Record();
+
+        record.date = formatter.parse(date);
+        record.groupName = groupName;
+        record.exercise = setInfo.split(":")[0];
+
+        Pattern pattern = Pattern.compile(": [0-9]+ x ");
+        Matcher matcher = pattern.matcher(setInfo);
+        if (matcher.find()) {
+            subString = matcher.group(0);
+            record.repitions = Integer.parseInt(subString.substring(2,subString.length() - 3).trim());
+        }
+        pattern = Pattern.compile(": [0-9]+ x [0-9]+ lbs");
+        matcher = pattern.matcher(setInfo);
+        if (matcher.find()) {
+            subString = matcher.group(0);
+            record.weight = Integer.parseInt(subString.substring(subString.indexOf('x')+ 1,subString.length() - 4).trim());
+        }
+
+        record.completed = completed;
+        record.day = day;
+        record.wave = wave;
+
+        return record;
     }
 
     public void addExercise(){

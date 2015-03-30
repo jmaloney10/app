@@ -1,22 +1,40 @@
 package com.example.jmaloney.myapplication;
 
+import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.jmaloney.myapplication.calendar.CaldroidSampleCustomFragment;
+import com.example.jmaloney.myapplication.common.Record;
 import com.example.jmaloney.myapplication.editor.SelectDay;
 import com.example.jmaloney.myapplication.settings.SettingsActivity;
 import com.roomorama.caldroid.CaldroidFragment;
 import com.roomorama.caldroid.CaldroidListener;
 
+import net.sf.jsefa.Deserializer;
+import net.sf.jsefa.csv.CsvIOFactory;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -27,15 +45,19 @@ public class MainActivity extends FragmentActivity {
     private CaldroidFragment dialogCaldroidFragment;
     public final static String DATE_MESSAGE = "com.mycompany.myfirstapp.DATEMESSAGE";
     String activityDate = "";
+    static public String DATE_FORMAT = "dd MMM yyyy";
+    ArrayList<Record> logs = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        loadLogs();
         initializeCalendar(savedInstanceState);
+        displayDaySummary();
     }
 
-    public void onClick(View v){
+    public void addNewWorkout(View v){
         Intent intent = new Intent(this, SelectDay.class);
         intent.putExtra(DATE_MESSAGE,activityDate);
         startActivity(intent);
@@ -49,6 +71,83 @@ public class MainActivity extends FragmentActivity {
         inflater.inflate(R.menu.main_activity_actions, menu);
         return super.onCreateOptionsMenu(menu);
     }
+
+    public void displayDaySummary(){
+        SimpleDateFormat formatter = new SimpleDateFormat(MainActivity.DATE_FORMAT);
+
+        try {
+            for (Record record: logs) {
+                if (record.date.equals(formatter.parse(activityDate))) {
+                    editorPane();
+                    return;
+                }
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        addNewPane();
+    }
+
+    public void editorPane(){
+
+    }
+
+    public void addNewPane(){
+        ScrollView summaryPane = (ScrollView) findViewById(R.id.summary_pane);
+
+        TextView addNewView = new TextView(this);
+        addNewView.setText("Add Workout");
+        addNewView.setTextSize(55);
+        addNewView.setGravity(Gravity.CENTER);
+        addNewView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        addNewView.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                addNewWorkout(v);
+            }
+        });
+
+        summaryPane.removeAllViewsInLayout();
+        summaryPane.addView(addNewView);
+    }
+
+    public void loadLogs(){
+        FileInputStream fis = null;
+        BufferedReader bfr = null;
+        if (logs == null) {
+            logs = new ArrayList<Record>();
+        } else {
+            logs.clear();
+        }
+
+        Toast.makeText(getApplicationContext(), "load logs called",
+                Toast.LENGTH_SHORT).show();
+
+        try {
+            fis = openFileInput("workout_log");
+            bfr = new BufferedReader(new InputStreamReader(fis));
+
+
+            Deserializer deserializer = CsvIOFactory.createFactory(Record.class).createDeserializer();
+            deserializer.open(bfr);
+            while (deserializer.hasNext()) {
+                Record p = deserializer.next();
+                logs.add(p);
+            }
+            deserializer.close(true);
+
+
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+        }
+
+
+
+    }
+
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -68,7 +167,7 @@ public class MainActivity extends FragmentActivity {
 
 
     public void initializeCalendar(Bundle savedInstanceState) {
-        final SimpleDateFormat formatter = new SimpleDateFormat("dd MMM yyyy");
+        final SimpleDateFormat formatter = new SimpleDateFormat(DATE_FORMAT);
 
         // Setup caldroid fragment
         // **** If you want normal CaldroidFragment, use below line ****
@@ -89,6 +188,7 @@ public class MainActivity extends FragmentActivity {
             args.putInt(CaldroidFragment.YEAR, cal.get(Calendar.YEAR));
             args.putBoolean(CaldroidFragment.ENABLE_SWIPE, true);
             args.putBoolean(CaldroidFragment.SIX_WEEKS_IN_CALENDAR, true);
+            args.putParcelableArrayList("logs",logs);
 
             // Uncomment this to customize startDayOfWeek
             // args.putInt(CaldroidFragment.START_DAY_OF_WEEK,
@@ -98,6 +198,8 @@ public class MainActivity extends FragmentActivity {
             // args.putBoolean(CaldroidFragment.SQUARE_TEXT_VIEW_CELL, false);
 
             caldroidFragment.setArguments(args);
+
+            activityDate = formatter.format(cal.getTime());
         }
         setCustomResourceForDates();
 
@@ -116,6 +218,7 @@ public class MainActivity extends FragmentActivity {
                 caldroidFragment.setTextColorForDate(R.color.caldroid_sky_blue, date);
                 caldroidFragment.refreshView();
                 activityDate = formatter.format(date);
+                displayDaySummary();
             }
 
             @Override

@@ -2,9 +2,14 @@ package com.example.jmaloney.myapplication.calendar;
 
 import hirondelle.date4j.DateTime;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 
+import com.example.jmaloney.myapplication.MainActivity;
 import com.example.jmaloney.myapplication.R;
+import com.example.jmaloney.myapplication.common.Record;
 import com.roomorama.caldroid.CaldroidFragment;
 import com.roomorama.caldroid.CaldroidGridAdapter;
 
@@ -17,11 +22,13 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 public class CaldroidSampleCustomAdapter extends CaldroidGridAdapter {
+    ArrayList<Record> logs = null;
 
     public CaldroidSampleCustomAdapter(Context context, int month, int year,
                                        HashMap<String, Object> caldroidData,
-                                       HashMap<String, Object> extraData) {
+                                       HashMap<String, Object> extraData, ArrayList<Record> logs) {
         super(context, month, year, caldroidData, extraData);
+        this.logs = logs;
     }
 
     @Override
@@ -104,7 +111,16 @@ public class CaldroidSampleCustomAdapter extends CaldroidGridAdapter {
         }
 
         tv1.setText("" + dateTime.getDay());
-        tv2.setText("Hi");
+        SimpleDateFormat formatter = new SimpleDateFormat(MainActivity.DATE_FORMAT);
+        String format = dateTime.format(MainActivity.DATE_FORMAT.toUpperCase(), Locale.US);
+        for(Record record: logs){
+            String otherFormat = formatter.format(record.date);
+            if (otherFormat.equals(format)){
+                tv2.setText(record.day.substring(0,1) + record.wave);
+                break;
+            }
+        }
+
 
         // Somehow after setBackgroundResource, the padding collapse.
         // This is to recover the padding
